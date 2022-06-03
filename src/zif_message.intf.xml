@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_INTF" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOINTERF>
+    <CLSNAME>ZIF_MESSAGE</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Message</DESCRIPT>
+    <EXPOSURE>2</EXPOSURE>
+    <STATE>1</STATE>
+    <UNICODE>X</UNICODE>
+   </VSEOINTERF>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>LS_LOG</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Application Log: Message Data</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>MESSAGE_JSON</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Message  data  json</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>PROFILE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Profile for JWT signature</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>PUBLISH_JSON</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>final  Json to publish</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>SAP_DOCUMENT</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Document</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>SET_QUEUE_OF_PULLED_MESSAGES</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Set queue for pulled messages</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>SUBSCRIPTION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Subscription</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>TOPIC</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Topic</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_MESSAGE</CLSNAME>
+     <CMPNAME>URL</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>url</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>

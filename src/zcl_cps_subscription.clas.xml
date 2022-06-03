@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_CLAS" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOCLASS>
+    <CLSNAME>ZCL_CPS_SUBSCRIPTION</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Subscription</DESCRIPT>
+    <STATE>1</STATE>
+    <CLSCCINCL>X</CLSCCINCL>
+    <FIXPT>X</FIXPT>
+    <UNICODE>X</UNICODE>
+   </VSEOCLASS>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_CPS_SUBSCRIPTION</CLSNAME>
+     <CMPNAME>LO_AUTH</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Interface for Authentication</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_CPS_SUBSCRIPTION</CLSNAME>
+     <CMPNAME>LO_CONFIG</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>subscription  config</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_CPS_SUBSCRIPTION</CLSNAME>
+     <CMPNAME>LO_LOG</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Logger</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>
