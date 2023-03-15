@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_INTF" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOINTERF>
+    <CLSNAME>ZIF_CPS_FACADE</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Facade class for GCP pub sub</DESCRIPT>
+    <EXPOSURE>2</EXPOSURE>
+    <STATE>1</STATE>
+    <UNICODE>X</UNICODE>
+   </VSEOINTERF>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CMPNAME>LO_AUTH</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Interface for Authentication</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>LO_LOG</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Logger</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>LO_SUBSCRIPTION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Subscriber</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>LO_TOPIC</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Topic</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>LT_MESSAGE_ACK_SUCCESS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Acknowledged  Message from Subscription</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CMPNAME>LT_PULLED_MESSAGES</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Pulled Messages from topic</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>

@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_MSAG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <T100A>
+    <ARBGB>ZCPS_MESSAGE</ARBGB>
+    <MASTERLANG>E</MASTERLANG>
+    <STEXT>Messageclassfor GCP  Pubsub</STEXT>
+   </T100A>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>000</MSGNR>
+     <TEXT>&amp;</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>Profile Parameter missing</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>Profile used to sign  JWT  is &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>Topic Parameter is missing</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Topic used to publish message is &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>005</MSGNR>
+     <TEXT>Token is missing</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>006</MSGNR>
+     <TEXT>Token generated: &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>007</MSGNR>
+     <TEXT>Endpoint URL to topic  is missing in config</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>008</MSGNR>
+     <TEXT>Endpoint URL called is &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>009</MSGNR>
+     <TEXT>Error no  Message id recieved from server</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>010</MSGNR>
+     <TEXT>Message id recieved from server  &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>011</MSGNR>
+     <TEXT>Error Generating JWT</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>012</MSGNR>
+     <TEXT>JWT created successfully &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>013</MSGNR>
+     <TEXT>JWT Profile not Maintained</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>014</MSGNR>
+     <TEXT>Error Saving token to database</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZCPS_MESSAGE</ARBGB>
+     <MSGNR>015</MSGNR>
+     <TEXT>Error creating  HTTP Client</TEXT>
+    </T100>
+   </T100>
+  </asx:values>
+ </asx:abap>
+</abapGit>
