@@ -1,7 +1,5 @@
 *---------------------------------------------------------------------*
 *    program for:   TABLEFRAME_ZFG_CPS_MAINT
-*   generation date: 26.04.2022 at 15:02:38
-*   view maintenance generator version: #001407#
 *---------------------------------------------------------------------*
 FUNCTION TABLEFRAME_ZFG_CPS_MAINT      .
 

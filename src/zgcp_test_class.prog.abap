@@ -11,11 +11,12 @@ CLASS  lcl_driver DEFINITION FINAL .
                url      TYPE zurl ##NEEDED,
              END OF ty_url  ##NEEDED,
              BEGIN OF ty_ack ##NEEDED ,
-               check   TYPE char1,
-               srno    TYPE i,
-               ack_id  TYPE string,
-               message TYPE char20,
-               status  TYPE char4,
+               check      TYPE char1,
+               srno       TYPE i,
+               ack_id     TYPE string,
+               message    TYPE char20,
+               message_id TYPE char50,
+               status     TYPE char4,
              END OF ty_ack  ##NEEDED.
 
     DATA: lt_url       TYPE  TABLE  OF ty_url ##NEEDED,
@@ -52,7 +53,8 @@ CLASS  lcl_driver DEFINITION FINAL .
                tcode7       TYPE char20 VALUE 'ZJWT_PROFILE',
                tcode8       TYPE char20 VALUE 'ZCPS_ENDPOINT_GEN',
                c_object     TYPE balobj_d VALUE 'ZCPS_LOG',
-               c_sub_object TYPE balobj_d VALUE 'ZCPS_LOG'.
+               c_sub_object TYPE balobj_d VALUE 'ZCPS_LOG',
+               c_disp       TYPE char4 VALUE 'DISP'.
 
     METHODS:
       constructor  IMPORTING screen TYPE sydynnr
@@ -156,7 +158,6 @@ CLASS lcl_driver IMPLEMENTATION.
     SELECT * FROM zcps_topic  INTO TABLE lt_topic .    "# CI_NOWHERE
 
     LOOP AT lt_topic INTO wa_topic.
-      TRANSLATE wa_topic TO LOWER CASE.
       wa_url-endpoint = wa_topic-topic_name.
       wa_url-url = wa_topic-url.
       APPEND wa_url TO lt_url.
@@ -173,8 +174,6 @@ CLASS lcl_driver IMPLEMENTATION.
     SELECT * FROM zcps_subs  INTO TABLE lt_subs.        "#EC CI_NOWHERE
 
     LOOP AT lt_subs INTO wa_subs.
-
-      TRANSLATE wa_subs TO LOWER CASE.
       wa_url-endpoint = wa_subs-sub_name.
       wa_url-url = wa_subs-url.
       APPEND wa_url TO lt_url.
@@ -209,7 +208,12 @@ CLASS lcl_driver IMPLEMENTATION.
         create_log_object( ) .
       WHEN c_rad.
         get_endpoints( ).
-
+      WHEN c_disp.
+        IF  p_chk EQ abap_true.
+          SET PARAMETER ID  'ZDISPLAY_RESPONSE' FIELD  abap_true.
+        ELSE.
+          SET PARAMETER ID  'ZDISPLAY_RESPONSE' FIELD  abap_false.
+        ENDIF.
     ENDCASE.
   ENDMETHOD.
   METHOD execute_test.
@@ -263,24 +267,29 @@ CLASS lcl_driver IMPLEMENTATION.
     DATA : lo_cx_salv_msg       TYPE  REF TO cx_salv_msg,
            lo_cx_salv_not_found TYPE  REF TO cx_salv_not_found,
            lo_functions         TYPE  REF TO cl_salv_functions_list,
-           docking_at_right     TYPE  REF TO cl_gui_docking_container,
+           docking_at_bottom    TYPE  REF TO cl_gui_docking_container,
            lo_columns           TYPE  REF TO cl_salv_columns_table,
            lo_column            TYPE  REF TO cl_salv_column_table,
            lo_display           TYPE  REF TO cl_salv_display_settings,
-           lo_events            TYPE  REF TO cl_salv_events_table.
+           lo_events            TYPE  REF TO cl_salv_events_table,
+           lt_column_ref TYPE salv_t_column_ref,
+           ls_column_ref TYPE salv_s_column_ref.
 
 
-    CREATE OBJECT docking_at_right
+    CREATE OBJECT docking_at_bottom
       EXPORTING
-        repid = me->repid
-        dynnr = me->screen
-        side  = docking_at_right->dock_at_right
-        ratio = 40 ##NUMBER_OK.
+        repid     = me->repid
+        dynnr     = me->screen
+        side      = docking_at_bottom->dock_at_bottom
+        extension = 40
+        ratio     = 60 ##NUMBER_OK.
+
+*    docking_at_bottom->set_height( 50 ).
 
     TRY.
         CALL METHOD cl_salv_table=>factory
           EXPORTING
-            r_container  = docking_at_right
+            r_container  = docking_at_bottom
           IMPORTING
             r_salv_table = lo_alv
           CHANGING
@@ -311,6 +320,14 @@ CLASS lcl_driver IMPLEMENTATION.
       CATCH cx_salv_not_found INTO lo_cx_salv_not_found .
         WRITE lo_cx_salv_not_found->get_text( ).
     ENDTRY.
+    lt_column_ref = lo_columns->get( ).
+    LOOP AT lt_column_ref INTO ls_column_ref.
+      lo_column ?= ls_column_ref-r_column.
+      CASE ls_column_ref-columnname.
+        WHEN 'ENDPOINT' or 'URL'.
+          lo_column->set_lowercase(   value = if_salv_c_bool_sap=>true ).
+      ENDCASE.
+    ENDLOOP.
   ENDMETHOD.
 
   METHOD unlock_table.
@@ -381,7 +398,14 @@ CLASS lcl_driver IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD create_message .
+    DATA:lv_profile TYPE string.
+
     CREATE OBJECT lo_message TYPE zcl_cps_message.
+
+
+    READ TABLE lt_seltab INTO wa_seltab WITH  KEY selname = 'P_PROF'.
+    lv_profile  = wa_seltab-low .
+    lo_message->set_attributes(  EXPORTING profile = lv_profile ).
 
     DATA : lt_text TYPE STANDARD TABLE OF tline.
     DATA : wa_text TYPE tline.
@@ -454,7 +478,7 @@ CLASS lcl_driver IMPLEMENTATION.
   METHOD process_message.
     DATA :
       lo_cx_salv_msg       TYPE  REF TO cx_salv_msg,
-      lo_cx_salv_not_found TYPE  REF  TO cx_salv_not_found,
+      lo_cx_salv_not_found TYPE  REF TO cx_salv_not_found,
       lo_functions         TYPE  REF TO cl_salv_functions_list,
       lo_columns           TYPE  REF TO cl_salv_columns_table,
       lo_column            TYPE  REF TO cl_salv_column_table,
@@ -477,6 +501,7 @@ CLASS lcl_driver IMPLEMENTATION.
       wa_ack-status = icon_red_light.
       READ TABLE lt_messages INTO wa_message INDEX sy-index.
       wa_ack-ack_id  = wa_message-ack_id.
+      wa_ack-message_id = wa_message-message-message_id.
       CONCATENATE TEXT-t11 lv_index INTO wa_ack-message.
       CONDENSE wa_ack-message.
       APPEND wa_ack TO lt_ack_alv.
@@ -493,6 +518,7 @@ CLASS lcl_driver IMPLEMENTATION.
             t_table      = lt_ack_alv.
 
         lo_columns = lo_alv2->get_columns( ).
+        lo_columns->set_optimize('X').
         lo_column ?= lo_columns->get_column( 'CHECK' )  ##NO_TEXT.
         lo_column->set_short_text( TEXT-tc7  )  ##NO_TEXT.
         lo_column->set_medium_text( TEXT-tc6 ) ##NO_TEXT.
@@ -507,8 +533,13 @@ CLASS lcl_driver IMPLEMENTATION.
         lo_column ?= lo_columns->get_column( 'MESSAGE' ) ##NO_TEXT.
         lo_column->set_short_text( TEXT-t11  ) ##NO_TEXT.
         lo_column->set_cell_type( if_salv_c_cell_type=>hotspot ) ##NO_TEXT.
+          lo_column ?= lo_columns->get_column( 'MESSAGE_ID' ) ##NO_TEXT.
+        lo_column->set_long_text( TEXT-t12  ) ##NO_TEXT.
+        lo_column->set_short_text( TEXT-t13  ) ##NO_TEXT.
         lo_functions  = lo_alv2->get_functions( ).
         lo_functions->set_all('X').
+
+
 
 *-- pf_status
         lo_alv2->set_screen_status(
@@ -702,7 +733,7 @@ CLASS lcl_handler  IMPLEMENTATION.
         IF wa_seltab-low = abap_true.
           lo_driver->topic  = <fs>-endpoint.
         ELSE.
-          lo_driver->subscription = <fs>-endpoint.
+          lo_driver->subscription = 'def-A5j6M0YWpz6CB4K51w4a-experimental'."<fs>-endpoint.
         ENDIF.
       ENDIF.
     ENDIF.
@@ -795,12 +826,12 @@ FORM initialization .
   but1  = TEXT-b01.
   but2  = TEXT-b02.
   but3  = TEXT-b03.
-  but5  = TEXT-b05.
-  but4  = TEXT-b04.
-  but6  = TEXT-b06.
-  but7  = TEXT-b07.
-  but8  = TEXT-b08.
-  but9  = TEXT-b09.
-  but10 = TEXT-b10.
-  but11 = TEXT-b11.
+*  but5  = TEXT-b05.
+*  but4  = TEXT-b04.
+*  but6  = TEXT-b06.
+*  but7  = TEXT-b07.
+*  but8  = TEXT-b08.
+*  but9  = TEXT-b09.
+*  but10 = TEXT-b10.
+*  but11 = TEXT-b11.
 ENDFORM.

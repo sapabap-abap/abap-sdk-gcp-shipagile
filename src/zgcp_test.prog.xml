@@ -2093,6 +2093,18 @@
     </item>
     <item>
      <ID>I</ID>
+     <KEY>T12</KEY>
+     <ENTRY>Pub/Sub Message ID</ENTRY>
+     <LENGTH>28</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>T13</KEY>
+     <ENTRY>P/S.ID</ENTRY>
+     <LENGTH>6</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
      <KEY>TC1</KEY>
      <ENTRY>CHECKBOX</ENTRY>
      <LENGTH>18</LENGTH>

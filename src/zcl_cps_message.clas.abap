@@ -31,6 +31,8 @@ public section.
     for ZIF_MESSAGE~GET_MESSAGE .
   aliases GET_PULLED_MESSAGES
     for ZIF_MESSAGE~GET_PULLED_MESSAGES .
+  aliases SET_ATTRIBUTES
+    for ZIF_MESSAGE~SET_ATTRIBUTES .
   aliases SET_DOCUMENT_DETAILS
     for ZIF_MESSAGE~SET_DOCUMENT_DETAILS .
   aliases SET_MESSAGE
@@ -76,36 +78,12 @@ private section.
   data LO_AUTH type ref to ZIF_AUTH .
   data LO_LOG type ref to ZIF_LOGGER .
   data LT_ACK_MESSAGE type ZSUBS_PULL_MSG_TABLE .
+  data LS_ATTRIBUTES type ZATTRIBUTES .
 ENDCLASS.
 
 
 
 CLASS ZCL_CPS_MESSAGE IMPLEMENTATION.
-
-
-  METHOD zif_message~get_auth.
-
-    DATA : lo_cx_sy_create_object_error TYPE  REF TO   cx_sy_create_object_error,
-           lo_cx_bal_exception          TYPE REF TO cx_bal_exception.
-
-    TRY.
-        CREATE OBJECT lo_auth TYPE zcl_cps_auth.
-      CATCH  cx_sy_create_object_error INTO lo_cx_sy_create_object_error.
-*        log error response and return
-        TRY.
-            IF lo_log IS BOUND.
-              lo_log->add_errortext( i_errortext = lo_cx_sy_create_object_error->get_text( )  ).
-            ELSE.
-              lo_log = get_logger( ).
-              lo_log->add_errortext( i_errortext = lo_cx_sy_create_object_error->get_text( )  ).
-            ENDIF.
-            RETURN.
-          CATCH cx_bal_exception  INTO lo_cx_bal_exception .
-            WRITE :  lo_cx_bal_exception->get_text( ).
-        ENDTRY.
-    ENDTRY.
-
-  ENDMETHOD.
 
 
 METHOD post_call.
@@ -174,7 +152,9 @@ METHOD post_call.
 ** Create Request
 ********************************************************************
       CONCATENATE lv_url '?access_token=' token INTO lv_url.
-      CONCATENATE 'Bearer' token  INTO lv_value  ##NO_TEXT.
+
+      CONCATENATE 'Bearer' space token  INTO lv_value RESPECTING BLANKS ##NO_TEXT.
+
 
       cl_http_client=>create_by_url(
       EXPORTING
@@ -259,20 +239,16 @@ METHOD post_call.
 ENDMETHOD.
 
 
-  METHOD zif_message~set_queue_of_pulled_messages.
-    me->lt_messages = in_lt_messages.
-  ENDMETHOD.
-
-
   METHOD zif_message~acknowledge.
 
 
-    DATA: url         TYPE string,
-          response    TYPE string,
-          lv_body     TYPE string,
-          lv_ack_id   TYPE string,
-          lv_token    TYPE string,
-          jwt_profile TYPE zjwt_profile,
+    DATA: url                 TYPE string,
+          response            TYPE string,
+          lv_body             TYPE string,
+          display_response    TYPE flag,
+          lv_ack_id           TYPE string,
+          lv_token            TYPE string,
+          jwt_profile         TYPE zjwt_profile,
           lo_cx_bal_exception TYPE REF TO cx_bal_exception.
 
     FIELD-SYMBOLS :  <wa_message>  LIKE  LINE OF lt_messages.
@@ -312,7 +288,6 @@ ENDMETHOD.
         url  = TEXT-001."'https://pubsub.googleapis.com/v1/projects/&1/subscriptions/&2:acknowledge'
         REPLACE '&1' IN url WITH jwt_profile-project.
         REPLACE '&2' IN url WITH subscription.
-        TRANSLATE url TO LOWER  CASE.
 ********************************************************************
 ** Token
 ********************************************************************
@@ -321,7 +296,7 @@ ENDMETHOD.
 ********************************************************************
 ** Generate Body
 ********************************************************************
-        lv_body =  '{ "ackIds": [ &3 ] }' ##NO_TEXT.
+        lv_body =  '{ "ackIds": [ "&3" ] }' ##NO_TEXT.
 
         IF ack_id IS SUPPLIED.
           REPLACE '&3' IN lv_body WITH  ack_id .
@@ -340,13 +315,19 @@ ENDMETHOD.
 ** POST CALL
 ********************************************************************
 
+            GET PARAMETER ID 'ZDISPLAY_RESPONSE' FIELD  display_response.
+
+            IF display_response EQ 'X'.
+              CALL METHOD cl_demo_output=>display_json( lv_body ).
+            ENDIF.
+
             response  = me->post_call(  body     = lv_body
                                         url      = url
                                         topic    = subscription
                                         token    = lv_token
                                         ).
 
-            IF response IS INITIAL.
+            IF response IS INITIAL or response cs '{}'.
 *      message is acknowledged if respnse is initial
               APPEND  <wa_message>  TO lt_ack_message.
             ENDIF.
@@ -405,16 +386,41 @@ ENDMETHOD.
 
 
     base_64_msg = cl_http_utility=>encode_base64( unencoded = json ).
-
-    REPLACE ALL OCCURRENCES OF '=' IN  base_64_msg WITH ''.
-    REPLACE ALL OCCURRENCES OF '+' IN  base_64_msg WITH '-'.
-    REPLACE ALL OCCURRENCES OF '/' IN  base_64_msg WITH '_'.
+*
+*    REPLACE ALL OCCURRENCES OF '=' IN  base_64_msg WITH ''.
+*    REPLACE ALL OCCURRENCES OF '+' IN  base_64_msg WITH '-'.
+*    REPLACE ALL OCCURRENCES OF '/' IN  base_64_msg WITH '_'.
 
   endmethod.
 
 
   METHOD zif_message~get_acknowledged_message_list.
     r_lt_ack_message = lt_ack_message.
+  ENDMETHOD.
+
+
+  METHOD zif_message~get_auth.
+
+    DATA : lo_cx_sy_create_object_error TYPE  REF TO   cx_sy_create_object_error,
+           lo_cx_bal_exception          TYPE REF TO cx_bal_exception.
+
+    TRY.
+        CREATE OBJECT lo_auth TYPE zcl_cps_auth.
+      CATCH  cx_sy_create_object_error INTO lo_cx_sy_create_object_error.
+*        log error response and return
+        TRY.
+            IF lo_log IS BOUND.
+              lo_log->add_errortext( i_errortext = lo_cx_sy_create_object_error->get_text( )  ).
+            ELSE.
+              lo_log = get_logger( ).
+              lo_log->add_errortext( i_errortext = lo_cx_sy_create_object_error->get_text( )  ).
+            ENDIF.
+            RETURN.
+          CATCH cx_bal_exception  INTO lo_cx_bal_exception .
+            WRITE :  lo_cx_bal_exception->get_text( ).
+        ENDTRY.
+    ENDTRY.
+
   ENDMETHOD.
 
 
@@ -447,6 +453,15 @@ ENDMETHOD.
   endmethod.
 
 
+  METHOD zif_message~set_attributes.
+    IF attributes  IS SUPPLIED.
+      me->ls_attributes =  attributes.
+    ELSE.
+      SELECT SINGLE client_id FROM  zjwt_profile  INTO me->ls_attributes-client_id WHERE profile_name  = profile.
+    ENDIF.
+  ENDMETHOD.
+
+
   METHOD zif_message~set_document_details.
     sap_document   = in_sap_document.
   ENDMETHOD.
@@ -462,6 +477,11 @@ ENDMETHOD.
   endmethod.
 
 
+  METHOD zif_message~set_queue_of_pulled_messages.
+    me->lt_messages = in_lt_messages.
+  ENDMETHOD.
+
+
   METHOD zif_message~set_subscription.
     me->subscription  = im_subscription.
   ENDMETHOD.
@@ -474,8 +494,9 @@ ENDMETHOD.
 
   METHOD zif_message~wrap_message_into_container.
     DATA :
-           message_wrapper TYPE zmessage_wrapper,
-           message_object  TYPE zmessage_object.
+      message_wrapper  TYPE zmessage_wrapper,
+      message_object   TYPE zmessage_object,
+      display_response TYPE flag.
 
 **Data should be  base64 url encode
 **{
@@ -485,14 +506,26 @@ ENDMETHOD.
 **    }
 **  ]
 **}
+
     message_object-data = me->encode_base64( in_json ).
-    message_object-attributes-client_id = sy-mandt.
-    message_object-attributes-created_by = ''.
+    message_object-attributes-client_id = me->ls_attributes-client_id.
+*   message_object-attributes-created_by = ''.
     APPEND message_object  TO  message_wrapper-messages.
 
-*Set final delivery message
-    me->set_message( me->convert_to_json(  message_wrapper ) ).
 
-    CLEAR :message_wrapper,message_object .
+
+*Set final delivery message
+    DATA:lv_json TYPE string.
+    lv_json = me->convert_to_json(  message_wrapper ).
+*    REPLACE ALL OCCURRENCES OF '"&1"' IN  lv_json WITH me->encode_base64( in_json ).
+    me->set_message( lv_json ).
+    GET PARAMETER ID 'ZDISPLAY_RESPONSE' FIELD  display_response.
+    IF display_response = abap_true.
+      cl_demo_output=>display_json( lv_json ).
+    ENDIF.
+
+    CLEAR :message_wrapper,
+           message_object,
+           lv_json .
   ENDMETHOD.
 ENDCLASS.

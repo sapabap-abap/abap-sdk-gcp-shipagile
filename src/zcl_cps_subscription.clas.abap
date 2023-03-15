@@ -102,7 +102,6 @@ METHOD post_call.
 ** Create Request
 ********************************************************************
   lv_url = url.
-  TRANSLATE lv_url TO LOWER CASE.
   CONCATENATE lv_url '?access_token=' token INTO lv_url.
   CONCATENATE 'Bearer' token  INTO lv_value.
 

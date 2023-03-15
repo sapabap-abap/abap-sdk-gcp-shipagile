@@ -127,7 +127,6 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEMPLATE</TYPE>
        <NAME>ZJWT_PROFILE-PROFILE_NAME</NAME>
-       <TEXT>________________________________________</TEXT>
        <LINE>003</LINE>
        <COLUMN>008</COLUMN>
        <LENGTH>040</LENGTH>
@@ -239,7 +238,6 @@
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
        <NAME>ZJWT_PROFILE-SSF_PROFILE</NAME>
-       <TEXT>SSF_profile_________</TEXT>
        <LINE>010</LINE>
        <COLUMN>008</COLUMN>
        <LENGTH>020</LENGTH>

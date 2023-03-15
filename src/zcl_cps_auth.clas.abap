@@ -388,25 +388,31 @@ CLASS ZCL_CPS_AUTH IMPLEMENTATION.
 
         TRY.
             lo_rest_client->if_rest_resource~post( lo_request ).
-          CATCH cx_rest_client_exception INTO lr_root.
-            l_response = lr_root->get_longtext( ).
-            CALL METHOD cl_demo_output=>display_text( l_response ).
-        ENDTRY.
 ** Collect response
-        lo_response = lo_rest_client->if_rest_client~get_response_entity( ).
+            lo_response = lo_rest_client->if_rest_client~get_response_entity( ).
 *http_status = lo_response->get_header_field( 'status' ).
-        http_status =  lo_rest_client->if_rest_client~get_status( ).
-        reason = lo_response->get_header_field( '~status_reason' ).
-        content_length = lo_response->get_header_field( 'content-length' ).
-        location = lo_response->get_header_field( 'location' ).
-        content_type = lo_response->get_header_field( 'content-type' ).
-        response = lo_response->get_string_data( ).
+            http_status =  lo_rest_client->if_rest_client~get_status( ).
+            reason = lo_response->get_header_field( '~status_reason' ).
+            content_length = lo_response->get_header_field( 'content-length' ).
+            location = lo_response->get_header_field( 'location' ).
+            content_type = lo_response->get_header_field( 'content-type' ).
+            response = lo_response->get_string_data( ).
+          CATCH cx_rest_client_exception INTO lr_root.
+            lo_response = lo_rest_client->if_rest_client~get_response_entity( ).
+            response = lo_response->get_string_data( ).
+        ENDTRY.
+
 
 
         GET PARAMETER ID 'ZDISPLAY_RESPONSE' FIELD display_response .
         IF display_response  EQ 'X'.
-          CALL METHOD cl_demo_output=>display_json( response ).
+          IF response  CS '<html>'.
+            CALL METHOD cl_demo_output=>display_html( response ).
+          ELSE.
+            CALL METHOD cl_demo_output=>display_json( response ).
+          ENDIF.
         ENDIF.
+
         lo_http_client->close( ).
 
         IF sy-subrc <> 0.

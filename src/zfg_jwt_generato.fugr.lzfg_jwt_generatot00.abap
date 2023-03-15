@@ -1,7 +1,5 @@
 *---------------------------------------------------------------------*
 *    view related data declarations
-*   generation date: 28.05.2022 at 00:17:42
-*   view maintenance generator version: #001407#
 *---------------------------------------------------------------------*
 *...processing: ZGCP_URL........................................*
 DATA:  BEGIN OF STATUS_ZGCP_URL                      .   "state vector

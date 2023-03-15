@@ -75,4 +75,8 @@ interface ZIF_MESSAGE
   methods GET_PULLED_MESSAGES
     returning
       value(EX_LT_MESSAGES) type ZSUBS_PULL_MSG_TABLE .
+  methods SET_ATTRIBUTES
+    importing
+      !PROFILE type STRING
+      !ATTRIBUTES type ZATTRIBUTES optional .
 endinterface.
