@@ -56,6 +56,7 @@ CLASS  lcl_driver DEFINITION FINAL .
     TYPES: tt_lines TYPE STANDARD TABLE OF string.
     METHODS:   handle_ok_code IMPORTING ok_code TYPE sy-ucomm.
     METHODS:   initialization.
+    METHODS: selection_screen_output.
     METHODS:   f4_file  IMPORTING program_name  TYPE  sycprog
                                   dynpro_number TYPE sydynnr.
 
@@ -121,13 +122,6 @@ CLASS  lcl_driver DEFINITION FINAL .
                c_b2               TYPE char2  VALUE 'B2',
                c_b3               TYPE char2  VALUE 'B3',
                c_b4               TYPE char2  VALUE 'B4',
-               c_b5               TYPE char2  VALUE 'B5',
-               c_b6               TYPE char2  VALUE 'B6',
-               c_b7               TYPE char2  VALUE 'B7',
-               c_b8               TYPE char2  VALUE 'B8',
-               c_b9               TYPE char2  VALUE 'B9',
-               c_b10              TYPE char3  VALUE 'B10',
-               c_b11              TYPE char3  VALUE 'B11',
                c_subs             TYPE string VALUE 'ZCPS_SUBS',
                c_topic            TYPE string VALUE 'ZCPS_TOPIC',
                c_profile          TYPE string VALUE 'SHIPAGILE',
@@ -136,7 +130,9 @@ CLASS  lcl_driver DEFINITION FINAL .
                c_zjwt_profile     TYPE string VALUE 'ZJWT_PROFILE',
                c_config_file_name TYPE string VALUE 'CONFIG.JSON',
                c_key_file_name    TYPE string VALUE 'KEY.P12',
-               c_pub_sub          TYPE string VALUE 'PUBSUB.CRT'.
+               c_pub_sub          TYPE string VALUE 'PUBSUB.CRT',
+               c_object           TYPE balobj_d VALUE 'ZCPS_LOG',
+               c_sub_object       TYPE balobj_d VALUE 'ZCPS_LOG'.
 
 
     DATA: BEGIN OF  wa_url,
@@ -235,6 +231,8 @@ CLASS  lcl_driver DEFINITION FINAL .
 
       check_directory_existence     IMPORTING directory TYPE string,
       create_pse_upload_json_key,
+      create_log_object,
+      schedule_jobs,
       upload_pubsub_cert_ssl.
 
 ENDCLASS.
@@ -248,30 +246,33 @@ CLASS lcl_driver IMPLEMENTATION.
       me->check_directory_existence( CONV string( p_file ) ).
       CASE ok_code.
         WHEN  c_b1.
-          me->upload_certification( ).                   "#EC CI_CALLTA
-        WHEN c_b2.
           me->upload_configuration( ).                   "#EC CI_CALLTA
+        WHEN c_b2.
+          me->upload_certification( ).                   "#EC CI_CALLTA
         WHEN c_b3.
           me->test_connection( ).                        "#EC CI_CALLTA
+        WHEN c_b4.
+          me->schedule_jobs( ).
       ENDCASE.
     ENDIF.
   ENDMETHOD.
   METHOD initialization.
-    but1 = icon_red_light.
-    but2 = icon_red_light.
-    but3 = icon_red_light.
+    but1 = TEXT-100.
+    but2 = TEXT-101.
+    but3 = TEXT-102.
+    but4 = TEXT-103.
     me->get_user_desktop_directory( ).
   ENDMETHOD.
   METHOD upload_certification.
     me->progress_indicator('Check Existence of Cryptolib').
     me->check_anonymous_pse( ).
     me->progress_indicator('Create Shipagile Key Node').
-*    me->create_ssf_application( ) .
+    me->create_ssf_application( ) .
     me->create_pse_upload_json_key( ).
     me->progress_indicator('Upload SSL Certificate').
-*    me->upload_pubsub_cert_ssl( ).
+    me->upload_pubsub_cert_ssl( ).
     me->progress_indicator('Creating SSF Profile').
-    but1 = icon_green_light.
+*    but1 = icon_green_light.
   ENDMETHOD.
   METHOD upload_configuration.
     IF p_file  IS NOT  INITIAL.
@@ -286,7 +287,7 @@ CLASS lcl_driver IMPLEMENTATION.
     me->extract_config( me->lt_file_contents ).
     me->progress_indicator('Uploading Configuration File Data to SAP').
     IF me->update_config_db_tables( ) EQ  abap_true.
-      but2 = icon_green_light.
+*      but2 = icon_green_light.
     ENDIF.
   ENDMETHOD.
   METHOD f4_file.
@@ -383,6 +384,8 @@ CLASS lcl_driver IMPLEMENTATION.
         me->update_zcps_subs( ).
 *    UPDATE ALIAS TABLE.
         me->update_alias_table( ).
+*    Create SAP Log
+        create_log_object( ).
 
         success   = abap_true.
       CATCH lcx_pse INTO DATA(lo_excp).
@@ -407,84 +410,88 @@ CLASS lcl_driver IMPLEMENTATION.
       cclalg          TYPE string,
       lf_alg          TYPE ssfflag,
       lf_keylen       TYPE ssfkeylen,
-      lf_credname     TYPE icm_credname.
+      lf_credname     TYPE icm_credname,
+      lo_lcx_pse      TYPE REF TO lcx_pse.
 
 *...Set RC = Error
     sy-subrc = 1.
-
+    TRY.
 *...Check SSL Client Anonym
-    CALL FUNCTION 'SSFPSE_PARAMETER'
-      EXPORTING
-        context       = 'SSLC'
-        applic        = 'ANONYM'
-      EXCEPTIONS
-        pse_not_found = 1
-        OTHERS        = 2.
-    IF sy-subrc > 1. internal_error( ). ENDIF.
-    IF sy-subrc = 1.
+        CALL FUNCTION 'SSFPSE_PARAMETER'
+          EXPORTING
+            context       = 'SSLC'
+            applic        = 'ANONYM'
+          EXCEPTIONS
+            pse_not_found = 1
+            OTHERS        = 2.
+        IF sy-subrc > 1. internal_error( ). ENDIF.
+        IF sy-subrc = 1.
 *...PSE is missing - create it
-      CALL FUNCTION 'POPUP_TO_CONFIRM'
-        EXPORTING
-          titlebar              = 'Create PSE SSL client Anonymous'(034)
-          text_question         = 'PSE SSL client Anonymous is missing. Create it?'(033)
-          display_cancel_button = ' '
-          default_button        = '2'
-        IMPORTING
-          answer                = lf_answer
-        EXCEPTIONS
-          OTHERS                = 1.
-      IF sy-subrc <> 0. internal_error( ). ENDIF.
-      IF lf_answer <> '1'. RETURN. ENDIF.
-      dn = 'CN=anonymous'.
-      cclalg = 'RSA:2048:SHA1'.
-      ptab_line-name = 'DN'.
-      ptab_line-kind = abap_func_exporting.
-      GET REFERENCE OF dn INTO ptab_line-value.
-      INSERT ptab_line INTO TABLE ptab.
-      IF sy-saprl > '740'.
-        ptab_line-name = 'CCLALG'.
-        ptab_line-kind = abap_func_exporting.
-        GET REFERENCE OF cclalg INTO ptab_line-value.
-        INSERT ptab_line INTO TABLE ptab.
-      ELSE.
-        lf_alg = 'R'.
-        lf_keylen = 1024.
-        ptab_line-name = 'ALG'.
-        ptab_line-kind = abap_func_exporting.
-        GET REFERENCE OF lf_alg INTO ptab_line-value.
-        INSERT ptab_line INTO TABLE ptab.
-        ptab_line-name = 'KEYLEN'.
-        ptab_line-kind = abap_func_exporting.
-        GET REFERENCE OF lf_keylen INTO ptab_line-value.
-        INSERT ptab_line INTO TABLE ptab.
-      ENDIF.
-      ptab_line-name = 'PSEPATH'.
-      ptab_line-kind = abap_func_importing.
-      GET REFERENCE OF lf_tempname INTO ptab_line-value.
-      INSERT ptab_line INTO TABLE ptab.
-      etab_line-name = 'OTHERS'.
-      etab_line-value = 1.
-      INSERT etab_line INTO TABLE etab.
-      CALL FUNCTION 'SSFPSE_CREATE'
-        PARAMETER-TABLE ptab
-        EXCEPTION-TABLE etab.
-      IF sy-subrc <> 0. internal_error( ). ENDIF.
-      lf_profile_temp = lf_tempname.
+          CALL FUNCTION 'POPUP_TO_CONFIRM'
+            EXPORTING
+              titlebar              = 'Create PSE SSL client Anonymous'(034)
+              text_question         = 'PSE SSL client Anonymous is missing. Create it?'(033)
+              display_cancel_button = ' '
+              default_button        = '2'
+            IMPORTING
+              answer                = lf_answer
+            EXCEPTIONS
+              OTHERS                = 1.
+          IF sy-subrc <> 0. internal_error( ). ENDIF.
+          IF lf_answer <> '1'. RETURN. ENDIF.
+          dn = 'CN=anonymous'.
+          cclalg = 'RSA:2048:SHA1'.
+          ptab_line-name = 'DN'.
+          ptab_line-kind = abap_func_exporting.
+          GET REFERENCE OF dn INTO ptab_line-value.
+          INSERT ptab_line INTO TABLE ptab.
+          IF sy-saprl > '740'.
+            ptab_line-name = 'CCLALG'.
+            ptab_line-kind = abap_func_exporting.
+            GET REFERENCE OF cclalg INTO ptab_line-value.
+            INSERT ptab_line INTO TABLE ptab.
+          ELSE.
+            lf_alg = 'R'.
+            lf_keylen = 1024.
+            ptab_line-name = 'ALG'.
+            ptab_line-kind = abap_func_exporting.
+            GET REFERENCE OF lf_alg INTO ptab_line-value.
+            INSERT ptab_line INTO TABLE ptab.
+            ptab_line-name = 'KEYLEN'.
+            ptab_line-kind = abap_func_exporting.
+            GET REFERENCE OF lf_keylen INTO ptab_line-value.
+            INSERT ptab_line INTO TABLE ptab.
+          ENDIF.
+          ptab_line-name = 'PSEPATH'.
+          ptab_line-kind = abap_func_importing.
+          GET REFERENCE OF lf_tempname INTO ptab_line-value.
+          INSERT ptab_line INTO TABLE ptab.
+          etab_line-name = 'OTHERS'.
+          etab_line-value = 1.
+          INSERT etab_line INTO TABLE etab.
+          CALL FUNCTION 'SSFPSE_CREATE'
+            PARAMETER-TABLE ptab
+            EXCEPTION-TABLE etab.
+          IF sy-subrc <> 0. internal_error( ). ENDIF.
+          lf_profile_temp = lf_tempname.
 
-      CALL FUNCTION 'SSFPSE_FILENAME'
-        EXPORTING
-          context = 'SSLC'
-          applic  = 'ANONYM'
-        IMPORTING
-          psename = lf_psename
-        EXCEPTIONS
-          OTHERS  = 0.
-      store_pse( fname = lf_profile_temp psename = lf_psename ).
-      lf_credname = lf_psename.
-      notify_icm( lf_credname ).
-    ENDIF.
+          CALL FUNCTION 'SSFPSE_FILENAME'
+            EXPORTING
+              context = 'SSLC'
+              applic  = 'ANONYM'
+            IMPORTING
+              psename = lf_psename
+            EXCEPTIONS
+              OTHERS  = 0.
+
+          store_pse( fname = lf_profile_temp psename = lf_psename ).
 
 
+          lf_credname = lf_psename.
+          notify_icm( lf_credname ).
+        ENDIF.
+      CATCH lcx_pse INTO lo_lcx_pse.
+    ENDTRY.
   ENDMETHOD.
   METHOD lock_table.
     CALL FUNCTION 'ENQUEUE_E_TABLE'
@@ -659,14 +666,13 @@ CLASS lcl_driver IMPLEMENTATION.
   ENDMETHOD.
   METHOD create_ssf_application.
 *Create new SSF Application
-    DATA : lv_success      TYPE flag.
 *Create ssf profile
     create_ssf_application_jwt_si( ).
-    IF lv_success = c_x.
-      CLEAR  lv_success.
+    IF  me->lv_success EQ  c_x.
+      CLEAR me->lv_success.
 *Create ssf pse node
       create_ssf_pse_node( ).
-      IF lv_success  EQ  c_x.
+      IF  me->lv_success EQ  c_x.
         MESSAGE TEXT-021 TYPE 'S'.
       ELSE.
         MESSAGE TEXT-022 TYPE  'E'.
@@ -714,7 +720,7 @@ CLASS lcl_driver IMPLEMENTATION.
         MESSAGE TEXT-017 TYPE  'S'.  "'SSF APP Created Successfully'
       ENDIF.
     ELSE.
-      lv_success = abap_false.
+      lv_success = abap_true.
       MESSAGE TEXT-020 TYPE'S'.  "SSF APP Exists'
     ENDIF.
   ENDMETHOD.
@@ -722,27 +728,32 @@ CLASS lcl_driver IMPLEMENTATION.
     DATA : ssf_ssfargs TYPE ssfargs,
            lv_profile  TYPE ssfpab.
 
+    SELECT SINGLE  * FROM  ssfargs INTO ssf_ssfargs WHERE applic  = 'JWT_SI'.
+    IF sy-subrc NE 0 .
 *create profile name
-    lv_profile  = 'SAPJWT_SI&1.pse' ##NO_TEXT.
-    REPLACE '&1' IN lv_profile  WITH sy-mandt.
-    CONDENSE lv_profile.
+      lv_profile  = 'SAPJWT_SI&1.pse' ##NO_TEXT.
+      REPLACE '&1' IN lv_profile  WITH sy-mandt.
+      CONDENSE lv_profile.
 
-    ssf_ssfargs-applic = 'JWT_SI'.
-    ssf_ssfargs-ssftoolkit = 'SAPSECULIB'.
-    ssf_ssfargs-ssfformat = 'PKCS1-V1.5'.
-    ssf_ssfargs-pab  =  ssf_ssfargs-profile  = lv_profile.
-    ssf_ssfargs-hashalg = 'SHA256'.
-    ssf_ssfargs-encralg  = 'AES128-CBC'.
-    ssf_ssfargs-distrib  = c_x.
-    ssf_ssfargs-explicit  = c_x.
+      ssf_ssfargs-applic = 'JWT_SI'.
+      ssf_ssfargs-ssftoolkit = 'SAPSECULIB'.
+      ssf_ssfargs-ssfformat = 'PKCS1-V1.5'.
+      ssf_ssfargs-pab  =  ssf_ssfargs-profile  = lv_profile.
+      ssf_ssfargs-hashalg = 'SHA256'.
+      ssf_ssfargs-encralg  = 'AES128-CBC'.
+      ssf_ssfargs-distrib  = c_x.
+      ssf_ssfargs-explicit  = c_x.
 
-    lock_table('SSFARGS') .
-    INSERT  ssfargs FROM ssf_ssfargs .
-    IF sy-subrc = 0  .
-      COMMIT WORK.
-      lv_success = c_x.
+      lock_table('SSFARGS') .
+      INSERT  ssfargs FROM ssf_ssfargs .
+      IF sy-subrc = 0  .
+        COMMIT WORK.
+        me->lv_success = c_x.
+      ENDIF.
+      unlock_table('SSFARGS').
+    ELSE.
+      me->lv_success = c_x.
     ENDIF.
-    unlock_table('SSFARGS').
   ENDMETHOD.
 
   METHOD get_server_file_separator.
@@ -767,12 +778,12 @@ CLASS lcl_driver IMPLEMENTATION.
     MOVE-CORRESPONDING wa_config-jwt_profile TO jwt_profile.
 
     me->lock_table( 'ZJWT_PROFILE').
-*    MODIFY zjwt_profile FROM jwt_profile.
-*    IF sy-subrc = 0.
-*      COMMIT WORK.
-*    ELSE.
-*      ROLLBACK WORK.
-*    ENDIF.
+    MODIFY zjwt_profile FROM jwt_profile.
+    IF sy-subrc = 0.
+      COMMIT WORK.
+    ELSE.
+      ROLLBACK WORK.
+    ENDIF.
     me->unlock_table('ZJWT_PROFILE').
 
   ENDMETHOD.
@@ -913,6 +924,8 @@ CLASS lcl_driver IMPLEMENTATION.
 *  create  ssf application
       lo_abap_pse_app TYPE REF TO cl_abap_pse_application,
       lo_abap_pse     TYPE REF TO cl_abap_pse,
+      lo_cx_abap_pse  TYPE REF TO cx_abap_pse,
+      lo_cx_pkcs      TYPE REF TO cx_pkcs,
       password        TYPE ssfp12pw,
       filename        TYPE string.
 
@@ -948,20 +961,22 @@ CLASS lcl_driver IMPLEMENTATION.
 *. Base64 coded data
     CREATE OBJECT lr_cutf8 EXPORTING incode = '4110'.
 *    lr_cutf8->convert( EXPORTING inbuff = lf_bindata outbufflg = 0 IMPORTING outbuff = lf_string ).
-    lf_string =  me->wa_config-p12-privatekeydata .
-    CALL FUNCTION 'SSFC_BASE64_DECODE'
-      EXPORTING
-        b64data = lf_string
-      IMPORTING
-        bindata = lf_xstring
-      EXCEPTIONS
-        OTHERS  = 1.
-    IF sy-subrc = 0.
-      lf_bindata = lf_xstring.
-    ENDIF.
 
-    DATA : lo_parser TYPE REF TO cl_asn1_parser.
-    CREATE OBJECT lo_parser EXPORTING if_blob = lf_xstring if_sloppy = abap_true.
+    TRY.
+        lf_string =  me->wa_config-p12-privatekeydata .
+        CALL FUNCTION 'SSFC_BASE64_DECODE'
+          EXPORTING
+            b64data = lf_string
+          IMPORTING
+            bindata = lf_xstring
+          EXCEPTIONS
+            OTHERS  = 1.
+        IF sy-subrc = 0.
+          lf_bindata = lf_xstring.
+        ENDIF.
+
+        DATA : lo_parser TYPE REF TO cl_asn1_parser.
+        CREATE OBJECT lo_parser EXPORTING if_blob = lf_xstring if_sloppy = abap_true.
 
 
 
@@ -1045,80 +1060,174 @@ CLASS lcl_driver IMPLEMENTATION.
 *      IMPORTING
 *        bindata  = lf_bindata ).
 *
-    password  = 'notasecret'.
-    lf_bindata  = cl_pkcs=>get_octet_string( lo_parser ).
-    cl_pkcs=>import_p12(
-           EXPORTING
-                     p12pw = password
-                     p12keynumber = 1
-                     p12data = lf_bindata
-           IMPORTING psedata = lf_psedata ).
 
-    CREATE OBJECT lo_abap_pse
-      EXPORTING
-        iv_pse = lf_psedata.
+        DATA: lt_binary TYPE TABLE OF solix,
+              ls_binary TYPE xstring. "solix.
+        ls_binary = cl_http_utility=>decode_base64( me->wa_config-p12-privatekeydata  ).
+        DATA base64_key  TYPE string.
+        CALL FUNCTION 'SSFC_BASE64_ENCODE'
+          EXPORTING
+            bindata = ls_binary
+*           BINLENG =
+          IMPORTING
+            b64data = base64_key
+*   EXCEPTIONS
+*           SSF_KRN_ERROR                  = 1
+*           SSF_KRN_NOOP                   = 2
+*           SSF_KRN_NOMEMORY               = 3
+*           SSF_KRN_OPINV                  = 4
+*           SSF_KRN_INPUT_DATA_ERROR       = 5
+*           SSF_KRN_INVALID_PAR            = 6
+*           SSF_KRN_INVALID_PARLEN         = 7
+*           OTHERS  = 8
+          .
+        IF sy-subrc <> 0.
+          IF base64_key NE me->wa_config-p12-privatekeydata .
+            MESSAGE 'error in key ' TYPE 'E'.
+          ENDIF.
+* Implement suitable error handling here
+        ENDIF.
 
-    lo_abap_pse->save( iv_context  = 'SSFA' iv_application = 'SHPAGL').
 
+***************************************************************************
+        password  = 'notasecret'.
+        lf_bindata  = cl_pkcs=>get_octet_string( lo_parser ).
+        cl_pkcs=>import_p12(
+               EXPORTING
+                         p12pw = password
+                         p12keynumber = 1
+                         p12data = lf_bindata
+               IMPORTING psedata = lf_psedata ).
+
+        CREATE OBJECT lo_abap_pse
+          EXPORTING
+            iv_pse = lf_psedata.
+
+*    lo_abap_pse->save( iv_context  = 'SSFA' iv_application = 'SHPAGL').
+        lo_abap_pse->save( iv_context  = 'SSFA' iv_application = 'JWT_SI').
+      CATCH cx_abap_pse INTO lo_cx_abap_pse.
+      CATCH cx_pkcs     INTO lo_cx_pkcs.
+    ENDTRY.
   ENDMETHOD.
   METHOD upload_pubsub_cert_ssl.
-    DATA : bincert     TYPE xstring,
-           lv_filename TYPE string,
-           lo_abap_pse TYPE REF TO cl_abap_pse.
+    DATA : bincert      TYPE xstring,
+           lv_filename  TYPE string,
+           lo_abap_pse  TYPE REF TO cl_abap_pse,
+           lox_abap_pse TYPE REF TO cx_abap_pse.
 
     CONCATENATE me->selected_folder me->separator c_pub_sub INTO lv_filename.
     TRANSLATE lv_filename TO LOWER CASE.
+    TRY.
+        CALL FUNCTION 'SSFC_CERTIFICATE_IMPORT'
+          EXPORTING
+            filename                   = lv_filename
+            encoding                   = '?'
+          IMPORTING
+            certificate                = bincert
+*           SUBJECT                    =
+*           ISSUER                     =
+*           SERIALNO                   =
+*           VALIDFROM                  =
+*           VALIDTO                    =
+*           ALGID                      =
+*           FINGERPRINT                =
+          EXCEPTIONS
+            sapgui_required            = 1
+            no_upload_authorization    = 2
+            data_transmission_error    = 3
+            file_open_error            = 4
+            file_access_denied         = 5
+            file_read_error            = 6
+            unknown_error              = 7
+            import_parameter_missing   = 8
+            encoding_not_supported     = 9
+            invalid_certificate_format = 10
+            OTHERS                     = 11.
 
-    CALL FUNCTION 'SSFC_CERTIFICATE_IMPORT'
-      EXPORTING
-        filename                   = lv_filename
-        encoding                   = '?'
-      IMPORTING
-        certificate                = bincert
-*       SUBJECT                    =
-*       ISSUER                     =
-*       SERIALNO                   =
-*       VALIDFROM                  =
-*       VALIDTO                    =
-*       ALGID                      =
-*       FINGERPRINT                =
-      EXCEPTIONS
-        sapgui_required            = 1
-        no_upload_authorization    = 2
-        data_transmission_error    = 3
-        file_open_error            = 4
-        file_access_denied         = 5
-        file_read_error            = 6
-        unknown_error              = 7
-        import_parameter_missing   = 8
-        encoding_not_supported     = 9
-        invalid_certificate_format = 10
-        OTHERS                     = 11.
+        IF sy-subrc NE 0.
+          MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+                  INTO DATA(message) WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+        ENDIF.
+
+        DATA : refcert TYPE cert_struct,
+               rc      TYPE i.
+
+        PERFORM  parse_cert_struct  IN PROGRAM   s_trustmanager
+           USING    bincert
+           CHANGING refcert
+                    rc   .
+
+        CREATE OBJECT lo_abap_pse
+          EXPORTING
+            iv_context      = 'SSLC'
+            iv_application  = 'ANONYM'
+            iv_load_from_db = abap_true.
+
+        CALL METHOD lo_abap_pse->add_trusted_certificate
+          EXPORTING
+            iv_certificate = refcert-bindata
+            iv_add_to_cab  = abap_false.
+
+        lo_abap_pse->save( iv_context  = 'SSLC' iv_application = 'ANONYM').
+      CATCH cx_abap_pse INTO lox_abap_pse .
+    ENDTRY.
+  ENDMETHOD.
+  METHOD  create_log_object.
+
+    DATA : ls_balobj  TYPE balobj.
+
+    SELECT SINGLE * FROM  balobj INTO ls_balobj WHERE object = c_object.
 
     IF sy-subrc NE 0.
-      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
-              INTO DATA(message) WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+      ls_balobj-object = c_object.
+      lock_table( 'BALOBJ' ).
+      INSERT balobj  FROM ls_balobj.
+      IF sy-subrc = 0.
+        COMMIT WORK.
+        WAIT UP TO 2 SECONDS.
+        unlock_table( 'BALOBJ' ).
+        SET PARAMETER ID 'BALOBJ'  FIELD c_sub_object.
+
+        CALL FUNCTION 'VIEW_MAINTENANCE_CALL'
+          EXPORTING
+            action                       = 'U'
+            view_name                    = 'V_BALSUB'
+          EXCEPTIONS
+            client_reference             = 1 ##NUMBER_OK
+            foreign_lock                 = 2 ##NUMBER_OK
+            invalid_action               = 3 ##NUMBER_OK
+            no_clientindependent_auth    = 4 ##NUMBER_OK
+            no_database_function         = 5 ##NUMBER_OK
+            no_editor_function           = 6 ##NUMBER_OK
+            no_show_auth                 = 7 ##NUMBER_OK
+            no_tvdir_entry               = 8 ##NUMBER_OK
+            no_upd_auth                  = 9 ##NUMBER_OK
+            only_show_allowed            = 10 ##NUMBER_OK
+            system_failure               = 11 ##NUMBER_OK
+            unknown_field_in_dba_sellist = 12 ##NUMBER_OK
+            view_not_found               = 13 ##NUMBER_OK
+            maintenance_prohibited       = 14 ##NUMBER_OK
+            OTHERS                       = 15 ##NUMBER_OK.
+        IF sy-subrc <> 0.
+          MESSAGE  TEXT-e02 TYPE 'E' .
+        ENDIF.
+
+      ELSE.
+        MESSAGE  TEXT-015 TYPE 'E'."'Error Creating Log Object'
+      ENDIF.
+    ELSE.
+      MESSAGE TEXT-014 TYPE  'S'."'Log object ZCPS_LOG already exists in SLG0'
     ENDIF.
+  ENDMETHOD.
+  METHOD schedule_jobs.
 
-    DATA : refcert TYPE cert_struct,
-           rc      TYPE i.
-
-    PERFORM  parse_cert_struct  IN PROGRAM   s_trustmanager
-       USING    bincert
-       CHANGING refcert
-                rc   .
-
-    CREATE OBJECT lo_abap_pse
-      EXPORTING
-        iv_context      = 'SSLC'
-        iv_application  = 'ANONYM'
-        iv_load_from_db = abap_true.
-
-    CALL METHOD lo_abap_pse->add_trusted_certificate
-      EXPORTING
-        iv_certificate = refcert-bindata
-        iv_add_to_cab  = abap_false.
-
-    lo_abap_pse->save( iv_context  = 'SSLC' iv_application = 'ANONYM').
+  ENDMETHOD.
+  METHOD selection_screen_output.
+    LOOP AT SCREEN.
+      IF screen-group1 = 'P1'.
+        screen-input = 0.
+      ENDIF.
+      MODIFY SCREEN.
+    ENDLOOP.
   ENDMETHOD.
 ENDCLASS.

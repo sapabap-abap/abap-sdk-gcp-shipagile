@@ -15,9 +15,7 @@
     <SCRTEXT_S>Alias Name</SCRTEXT_S>
     <SCRTEXT_M>Alias Name</SCRTEXT_M>
     <SCRTEXT_L>Alias Name</SCRTEXT_L>
-    <ACTFLAG>I</ACTFLAG>
     <DTELMASTER>E</DTELMASTER>
-    <RESERVEDTE>JB</RESERVEDTE>
     <REFKIND>D</REFKIND>
    </DD04V>
   </asx:values>

@@ -10,8 +10,6 @@
     <OUTPUTLEN>000255</OUTPUTLEN>
     <LOWERCASE>X</LOWERCASE>
     <DDTEXT>Url</DDTEXT>
-    <ACTFLAG>I</ACTFLAG>
-    <RESERVEDOM>JB</RESERVEDOM>
    </DD01V>
   </asx:values>
  </asx:abap>

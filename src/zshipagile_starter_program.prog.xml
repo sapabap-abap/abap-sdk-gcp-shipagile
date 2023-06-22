@@ -13,7 +13,7 @@
     <item>
      <ID>I</ID>
      <KEY>001</KEY>
-     <ENTRY>Step 1 :  Upload  Certificates --------&gt;</ENTRY>
+     <ENTRY>Status</ENTRY>
      <LENGTH>60</LENGTH>
     </item>
     <item>
@@ -31,7 +31,7 @@
     <item>
      <ID>I</ID>
      <KEY>004</KEY>
-     <ENTRY>Step 2 : Upload Config File  --------&gt;</ENTRY>
+     <ENTRY>Status</ENTRY>
      <LENGTH>40</LENGTH>
     </item>
     <item>
@@ -49,8 +49,54 @@
     <item>
      <ID>I</ID>
      <KEY>007</KEY>
-     <ENTRY>Step 3 :Test Connection ---------&gt;</ENTRY>
+     <ENTRY>Status</ENTRY>
      <LENGTH>40</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>008</KEY>
+     <LENGTH>25</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>011</KEY>
+     <ENTRY>Status</ENTRY>
+     <LENGTH>16</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>018</KEY>
+     <ENTRY>JWT Signature</ENTRY>
+     <LENGTH>23</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>100</KEY>
+     <ENTRY>Step1: Upload Config</ENTRY>
+     <LENGTH>40</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>101</KEY>
+     <ENTRY>Step2: Upload Certificates</ENTRY>
+     <LENGTH>52</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>102</KEY>
+     <ENTRY>Step3: Test Connection</ENTRY>
+     <LENGTH>40</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>103</KEY>
+     <ENTRY>Step4: Schedule Jobs</ENTRY>
+     <LENGTH>44</LENGTH>
+    </item>
+    <item>
+     <ID>I</ID>
+     <KEY>104</KEY>
+     <LENGTH>1</LENGTH>
     </item>
     <item>
      <ID>R</ID>

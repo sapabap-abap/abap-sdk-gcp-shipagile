@@ -15,9 +15,7 @@
     <SCRTEXT_S>Topic Name</SCRTEXT_S>
     <SCRTEXT_M>Topic Name</SCRTEXT_M>
     <SCRTEXT_L>Topic Name</SCRTEXT_L>
-    <ACTFLAG>I</ACTFLAG>
     <DTELMASTER>E</DTELMASTER>
-    <RESERVEDTE>JB</RESERVEDTE>
     <REFKIND>D</REFKIND>
    </DD04V>
   </asx:values>

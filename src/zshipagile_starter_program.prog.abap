@@ -14,6 +14,10 @@ DATA(lo_driver) = NEW lcl_driver( ).
 INITIALIZATION.
   lo_driver->initialization( ).
 
+AT SELECTION-SCREEN OUTPUT.
+  lo_driver->selection_screen_output( ).
+
+
 AT SELECTION-SCREEN ON VALUE-REQUEST FOR  p_file.
   lo_driver->f4_file( dynpro_number =  sy-dynnr program_name = sy-cprog ).
 
