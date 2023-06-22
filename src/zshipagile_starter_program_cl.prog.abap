@@ -261,6 +261,10 @@ CLASS lcl_driver IMPLEMENTATION.
     but2 = TEXT-101.
     but3 = TEXT-102.
     but4 = TEXT-103.
+    comm01 = '1.Enter the file path where config zip folder was downloaded to your'.
+    comm02 = '  local machine from your Shipagile account.'.
+    comm03 ='2.To download the file ,log into your Shipagile account and go to '.
+    comm04 ='  integration and select SAP on-prem and follow the on screen instructions.'.
     me->get_user_desktop_directory( ).
   ENDMETHOD.
   METHOD upload_certification.
@@ -272,7 +276,7 @@ CLASS lcl_driver IMPLEMENTATION.
     me->progress_indicator('Upload SSL Certificate').
     me->upload_pubsub_cert_ssl( ).
     me->progress_indicator('Creating SSF Profile').
-*    but1 = icon_green_light.
+    p_but1 = icon_green_light.
   ENDMETHOD.
   METHOD upload_configuration.
     IF p_file  IS NOT  INITIAL.
@@ -287,7 +291,7 @@ CLASS lcl_driver IMPLEMENTATION.
     me->extract_config( me->lt_file_contents ).
     me->progress_indicator('Uploading Configuration File Data to SAP').
     IF me->update_config_db_tables( ) EQ  abap_true.
-*      but2 = icon_green_light.
+      p_but2 = icon_green_light.
     ENDIF.
   ENDMETHOD.
   METHOD f4_file.

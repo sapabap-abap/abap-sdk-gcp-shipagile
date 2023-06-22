@@ -48,17 +48,6 @@
     </item>
     <item>
      <ID>I</ID>
-     <KEY>007</KEY>
-     <ENTRY>Status</ENTRY>
-     <LENGTH>40</LENGTH>
-    </item>
-    <item>
-     <ID>I</ID>
-     <KEY>008</KEY>
-     <LENGTH>25</LENGTH>
-    </item>
-    <item>
-     <ID>I</ID>
      <KEY>011</KEY>
      <ENTRY>Status</ENTRY>
      <LENGTH>16</LENGTH>
@@ -72,13 +61,13 @@
     <item>
      <ID>I</ID>
      <KEY>100</KEY>
-     <ENTRY>Step1: Upload Config</ENTRY>
+     <ENTRY>Step1: Set Configuration</ENTRY>
      <LENGTH>40</LENGTH>
     </item>
     <item>
      <ID>I</ID>
      <KEY>101</KEY>
-     <ENTRY>Step2: Upload Certificates</ENTRY>
+     <ENTRY>Step2: Install GCP SSL Certification</ENTRY>
      <LENGTH>52</LENGTH>
     </item>
     <item>
@@ -90,24 +79,25 @@
     <item>
      <ID>I</ID>
      <KEY>103</KEY>
-     <ENTRY>Step4: Schedule Jobs</ENTRY>
+     <ENTRY>Step4: Schedule Jobs (optional)</ENTRY>
      <LENGTH>44</LENGTH>
     </item>
     <item>
      <ID>I</ID>
      <KEY>104</KEY>
-     <LENGTH>1</LENGTH>
+     <ENTRY>Shipagile config file path</ENTRY>
+     <LENGTH>50</LENGTH>
     </item>
     <item>
      <ID>R</ID>
-     <ENTRY>Shipagile Configuration Uploader</ENTRY>
-     <LENGTH>32</LENGTH>
+     <ENTRY>Shipagile Starter Program</ENTRY>
+     <LENGTH>25</LENGTH>
     </item>
     <item>
      <ID>S</ID>
      <KEY>P_FILE</KEY>
-     <ENTRY>Directory Path</ENTRY>
-     <LENGTH>22</LENGTH>
+     <ENTRY>Shipagile config file path</ENTRY>
+     <LENGTH>34</LENGTH>
     </item>
    </TPOOL>
   </asx:values>
