@@ -116,23 +116,24 @@ CLASS  lcl_driver DEFINITION FINAL .
         keysize TYPE ssfkeylen,
       END OF sls_auth.
 
-    CONSTANTS: c_rad              TYPE char6  VALUE 'RAD',
-               c_x                TYPE char1  VALUE 'X',
-               c_b1               TYPE char2  VALUE 'B1',
-               c_b2               TYPE char2  VALUE 'B2',
-               c_b3               TYPE char2  VALUE 'B3',
-               c_b4               TYPE char2  VALUE 'B4',
-               c_subs             TYPE string VALUE 'ZCPS_SUBS',
-               c_topic            TYPE string VALUE 'ZCPS_TOPIC',
-               c_profile          TYPE string VALUE 'SHIPAGILE',
-               c_experimental     TYPE string VALUE 'EXPERIMENTAL',
-               c_subscription     TYPE string VALUE 'EXPERIMENTAL',
-               c_zjwt_profile     TYPE string VALUE 'ZJWT_PROFILE',
-               c_config_file_name TYPE string VALUE 'CONFIG.JSON',
-               c_key_file_name    TYPE string VALUE 'KEY.P12',
-               c_pub_sub          TYPE string VALUE 'PUBSUB.CRT',
-               c_object           TYPE balobj_d VALUE 'ZCPS_LOG',
-               c_sub_object       TYPE balobj_d VALUE 'ZCPS_LOG'.
+    CONSTANTS: c_rad              TYPE char6            VALUE 'RAD',
+               c_x                TYPE char1            VALUE 'X',
+               c_b1               TYPE char2            VALUE 'B1',
+               c_b2               TYPE char2            VALUE 'B2',
+               c_b3               TYPE char2            VALUE 'B3',
+               c_b4               TYPE char2            VALUE 'B4',
+               c_subs             TYPE string           VALUE 'ZCPS_SUBS',
+               c_topic            TYPE string           VALUE 'ZCPS_TOPIC',
+               c_profile          TYPE string           VALUE 'SHIPAGILE',
+               c_experimental     TYPE string           VALUE 'EXPERIMENTAL',
+               c_subscription     TYPE string           VALUE 'EXPERIMENTAL',
+               c_zjwt_profile     TYPE string           VALUE 'ZJWT_PROFILE',
+               c_config_file_name TYPE string           VALUE 'CONFIG.JSON',
+               c_key_file_name    TYPE string           VALUE 'KEY.P12',
+               c_pub_sub          TYPE string           VALUE 'PUBSUB.CRT',
+               c_object           TYPE balobj_d         VALUE 'ZCPS_LOG',
+               c_sub_object       TYPE balobj_d         VALUE 'ZCPS_LOG',
+               c_program_name     TYPE rsvar-report     VALUE 'ZCPS_DELIVERY_SEND'.
 
 
     DATA: BEGIN OF  wa_url,
@@ -194,7 +195,15 @@ CLASS  lcl_driver DEFINITION FINAL .
           mr_ra_profile    TYPE REF TO sls_profile,   "RA Profile in ms_sls_group
           ms_auth          TYPE sls_auth.
 
-    DATA: separator TYPE  flag.
+    DATA: separator    TYPE  flag,
+          but1_pressed TYPE flag,
+          but2_pressed TYPE flag,
+          but3_pressed TYPE flag.
+
+    DATA: lo_text_edit TYPE REF TO cl_gui_textedit,
+          lo_dock      TYPE REF TO cl_gui_docking_container,
+          lt_text      TYPE TABLE OF char255.
+
 
 
 
@@ -233,6 +242,7 @@ CLASS  lcl_driver DEFINITION FINAL .
       create_pse_upload_json_key,
       create_log_object,
       schedule_jobs,
+      show_text_editor,
       upload_pubsub_cert_ssl.
 
 ENDCLASS.
@@ -243,20 +253,33 @@ CLASS lcl_driver IMPLEMENTATION.
     IF p_file IS INITIAL   .
       MESSAGE  'Please Provide Directory Path' TYPE 'E'.
     ELSE.
-      me->check_directory_existence( CONV string( p_file ) ).
+      CLEAR :  but1_pressed,
+               but2_pressed,
+               but3_pressed .
       CASE ok_code.
         WHEN  c_b1.
           me->upload_configuration( ).                   "#EC CI_CALLTA
+          but1_pressed  =  abap_true.
         WHEN c_b2.
-          me->upload_certification( ).                   "#EC CI_CALLTA
+          IF   but1_pressed  =  abap_true.
+            me->upload_certification( ).                 "#EC CI_CALLTA
+            but2_pressed  =  abap_true.
+          ELSE.
+            MESSAGE 'Please follow sequence !' TYPE 'E'.
+          ENDIF.
         WHEN c_b3.
-          me->test_connection( ).                        "#EC CI_CALLTA
+          IF   but2_pressed  =  abap_true.
+            me->test_connection( ).                      "#EC CI_CALLTA
+          ELSE.
+            MESSAGE 'Please follow sequence !' TYPE 'E'.
+          ENDIF.
         WHEN c_b4.
           me->schedule_jobs( ).
       ENDCASE.
     ENDIF.
   ENDMETHOD.
   METHOD initialization.
+    me->show_text_editor( ).
     but1 = TEXT-100.
     but2 = TEXT-101.
     but3 = TEXT-102.
@@ -268,6 +291,9 @@ CLASS lcl_driver IMPLEMENTATION.
     me->get_user_desktop_directory( ).
   ENDMETHOD.
   METHOD upload_certification.
+    IF p_file IS NOT  INITIAL.
+      me->check_directory_existence( CONV string( p_file ) ).
+    ENDIF.
     me->progress_indicator('Check Existence of Cryptolib').
     me->check_anonymous_pse( ).
     me->progress_indicator('Create Shipagile Key Node').
@@ -281,6 +307,7 @@ CLASS lcl_driver IMPLEMENTATION.
   METHOD upload_configuration.
     IF p_file  IS NOT  INITIAL.
       me->selected_folder  = to_lower( p_file ).
+      me->check_directory_existence( CONV string( p_file ) ).
     ENDIF.
     me->read_directory( ).
     me->progress_indicator('Reading Directory').
@@ -1224,7 +1251,13 @@ CLASS lcl_driver IMPLEMENTATION.
     ENDIF.
   ENDMETHOD.
   METHOD schedule_jobs.
-
+    CALL FUNCTION 'BP_JOBVARIANT_SCHEDULE'
+      EXPORTING
+        title_name     = 'Schedule Background Job' " Displayed as title of of scheduling screens
+        job_name       = 'Shipagile_job' " Name of background processing job
+        prog_name      = c_program_name " Name of ABAP " report that is to be run -- used also to select variants
+      EXCEPTIONS
+        no_such_report = 01. " PROG_NAME program  not found.
   ENDMETHOD.
   METHOD selection_screen_output.
     LOOP AT SCREEN.
@@ -1233,5 +1266,54 @@ CLASS lcl_driver IMPLEMENTATION.
       ENDIF.
       MODIFY SCREEN.
     ENDLOOP.
+  ENDMETHOD.
+  METHOD show_text_editor.
+
+
+    IF  me->lo_dock IS NOT BOUND.
+
+      CREATE OBJECT lo_dock
+        EXPORTING
+*         parent                      = parent
+          repid                       = sy-repid
+          dynnr                       = sy-dynnr
+          side                        = cl_gui_docking_container=>dock_at_right
+          extension                   = 600
+*         style                       = style
+*         lifetime                    = lifetime_default
+*         caption                     = caption
+*         metric                      = 0
+*         ratio                       = ratio
+*         no_autodef_progid_dynnr     = no_autodef_progid_dynnr
+*         name                        = name
+        EXCEPTIONS
+          cntl_error                  = 1
+          cntl_system_error           = 2
+          create_error                = 3
+          lifetime_error              = 4
+          lifetime_dynpro_dynpro_link = 5
+          OTHERS                      = 6.
+      IF sy-subrc <> 0.
+        MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+                   WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+      ENDIF.
+
+
+    ENDIF.
+
+    IF lo_text_edit IS NOT BOUND.
+
+      CREATE OBJECT lo_text_edit
+        EXPORTING
+          wordwrap_mode     = 2 " 0: OFF; 1: wrap a window border; 2: wrap at fixed pos
+          wordwrap_position = 254   " pos of wordwrap, only makes sense with wordwrap_mode=2
+          parent            = me->lo_dock.     "Parent Container
+    ENDIF.
+
+    lo_text_edit->set_readonly_mode( 1 ).
+
+    CALL METHOD lo_text_edit->get_text_as_r3table
+      IMPORTING
+        table = lt_text.   " text as R/3 tabl
   ENDMETHOD.
 ENDCLASS.
