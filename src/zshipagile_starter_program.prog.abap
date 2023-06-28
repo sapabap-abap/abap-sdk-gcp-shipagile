@@ -3,7 +3,7 @@
 *&---------------------------------------------------------------------*
 *&
 *&---------------------------------------------------------------------*
-REPORT zshipagile_starter_program    MESSAGE-ID TRUST .
+REPORT zshipagile_starter_program MESSAGE-ID TRUST .
 
 INCLUDE zshipagile_starter_program_sel.
 INCLUDE zshipagile_starter_program_cl.

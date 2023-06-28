@@ -56,7 +56,7 @@ CLASS  lcl_driver DEFINITION FINAL .
     TYPES: tt_lines TYPE STANDARD TABLE OF string.
     METHODS:   handle_ok_code IMPORTING ok_code TYPE sy-ucomm.
     METHODS:   initialization.
-    METHODS: selection_screen_output.
+    METHODS:   selection_screen_output.
     METHODS:   f4_file  IMPORTING program_name  TYPE  sycprog
                                   dynpro_number TYPE sydynnr.
 
@@ -116,24 +116,24 @@ CLASS  lcl_driver DEFINITION FINAL .
         keysize TYPE ssfkeylen,
       END OF sls_auth.
 
-    CONSTANTS: c_rad              TYPE char6            VALUE 'RAD',
-               c_x                TYPE char1            VALUE 'X',
-               c_b1               TYPE char2            VALUE 'B1',
-               c_b2               TYPE char2            VALUE 'B2',
-               c_b3               TYPE char2            VALUE 'B3',
-               c_b4               TYPE char2            VALUE 'B4',
-               c_subs             TYPE string           VALUE 'ZCPS_SUBS',
-               c_topic            TYPE string           VALUE 'ZCPS_TOPIC',
-               c_profile          TYPE string           VALUE 'SHIPAGILE',
-               c_experimental     TYPE string           VALUE 'EXPERIMENTAL',
-               c_subscription     TYPE string           VALUE 'EXPERIMENTAL',
-               c_zjwt_profile     TYPE string           VALUE 'ZJWT_PROFILE',
-               c_config_file_name TYPE string           VALUE 'CONFIG.JSON',
-               c_key_file_name    TYPE string           VALUE 'KEY.P12',
-               c_pub_sub          TYPE string           VALUE 'PUBSUB.CRT',
-               c_object           TYPE balobj_d         VALUE 'ZCPS_LOG',
-               c_sub_object       TYPE balobj_d         VALUE 'ZCPS_LOG',
-               c_program_name     TYPE rsvar-report     VALUE 'ZCPS_DELIVERY_SEND'.
+    CONSTANTS:
+      c_x                TYPE char1            VALUE 'X',
+      c_b1               TYPE char2            VALUE 'B1',
+      c_b2               TYPE char2            VALUE 'B2',
+      c_b3               TYPE char2            VALUE 'B3',
+      c_b4               TYPE char2            VALUE 'B4',
+      c_subs             TYPE string           VALUE 'ZCPS_SUBS',
+      c_topic            TYPE string           VALUE 'ZCPS_TOPIC',
+      c_profile          TYPE string           VALUE 'SHIPAGILE',
+      c_experimental     TYPE string           VALUE 'EXPERIMENTAL',
+      c_subscription     TYPE string           VALUE 'EXPERIMENTAL',
+      c_zjwt_profile     TYPE string           VALUE 'ZJWT_PROFILE',
+      c_config_file_name TYPE string           VALUE 'CONFIG.JSON',
+      c_key_file_name    TYPE string           VALUE 'KEY.P12',
+      c_pub_sub          TYPE string           VALUE 'PUBSUB.CRT',
+      c_object           TYPE balobj_d         VALUE 'ZCPS_LOG',
+      c_sub_object       TYPE balobj_d         VALUE 'ZCPS_LOG',
+      c_program_name     TYPE rsvar-report     VALUE 'ZCPS_DELIVERY_SEND'.
 
 
     DATA: BEGIN OF  wa_url,
@@ -243,6 +243,7 @@ CLASS  lcl_driver DEFINITION FINAL .
       create_log_object,
       schedule_jobs,
       show_text_editor,
+      set_error IMPORTING error TYPE char255,
       upload_pubsub_cert_ssl.
 
 ENDCLASS.
@@ -253,9 +254,7 @@ CLASS lcl_driver IMPLEMENTATION.
     IF p_file IS INITIAL   .
       MESSAGE  'Please Provide Directory Path' TYPE 'E'.
     ELSE.
-      CLEAR :  but1_pressed,
-               but2_pressed,
-               but3_pressed .
+
       CASE ok_code.
         WHEN  c_b1.
           me->upload_configuration( ).                   "#EC CI_CALLTA
@@ -288,6 +287,9 @@ CLASS lcl_driver IMPLEMENTATION.
     comm02 = '  local machine from your Shipagile account.'.
     comm03 ='2.To download the file ,log into your Shipagile account and go to '.
     comm04 ='  integration and select SAP on-prem and follow the on screen instructions.'.
+    CLEAR :  me->but1_pressed,
+             me->but2_pressed,
+             me->but3_pressed .
     me->get_user_desktop_directory( ).
   ENDMETHOD.
   METHOD upload_certification.
@@ -302,9 +304,10 @@ CLASS lcl_driver IMPLEMENTATION.
     me->progress_indicator('Upload SSL Certificate').
     me->upload_pubsub_cert_ssl( ).
     me->progress_indicator('Creating SSF Profile').
-    p_but1 = icon_green_light.
+    p_but2 = icon_green_light.
   ENDMETHOD.
   METHOD upload_configuration.
+
     IF p_file  IS NOT  INITIAL.
       me->selected_folder  = to_lower( p_file ).
       me->check_directory_existence( CONV string( p_file ) ).
@@ -318,7 +321,7 @@ CLASS lcl_driver IMPLEMENTATION.
     me->extract_config( me->lt_file_contents ).
     me->progress_indicator('Uploading Configuration File Data to SAP').
     IF me->update_config_db_tables( ) EQ  abap_true.
-      p_but2 = icon_green_light.
+      p_but1 = icon_green_light.
     ENDIF.
   ENDMETHOD.
   METHOD f4_file.
@@ -424,7 +427,14 @@ CLASS lcl_driver IMPLEMENTATION.
     ENDTRY.
   ENDMETHOD.
   METHOD test_connection.
-    CALL TRANSACTION 'ZCPS'.
+*  get test delivery payload .
+
+*  publish test delivery payload to test topic
+
+*  pull  message and acknowledge
+
+*
+    p_but3 = icon_green_light.
   ENDMETHOD.
   METHOD check_anonymous_pse.
 
@@ -950,15 +960,16 @@ CLASS lcl_driver IMPLEMENTATION.
   ENDMETHOD.
   METHOD create_pse_upload_json_key.
     DATA:
-      lf_bindata      TYPE xstring,
-      lf_psedata      TYPE xstring,
+      lf_bindata        TYPE xstring,
+      lf_psedata        TYPE xstring,
 *  create  ssf application
-      lo_abap_pse_app TYPE REF TO cl_abap_pse_application,
-      lo_abap_pse     TYPE REF TO cl_abap_pse,
-      lo_cx_abap_pse  TYPE REF TO cx_abap_pse,
-      lo_cx_pkcs      TYPE REF TO cx_pkcs,
-      password        TYPE ssfp12pw,
-      filename        TYPE string.
+      lo_abap_pse_app   TYPE REF TO cl_abap_pse_application,
+      lo_abap_pse       TYPE REF TO cl_abap_pse,
+      lo_cx_abap_pse    TYPE REF TO cx_abap_pse,
+      lo_cx_asn1_parser TYPE REF TO cx_asn1_parser,
+      lo_cx_pkcs        TYPE REF TO cx_pkcs,
+      password          TYPE ssfp12pw,
+      filename          TYPE string.
 
     password = wa_config-jwt_profile-password.
 
@@ -1138,6 +1149,7 @@ CLASS lcl_driver IMPLEMENTATION.
         lo_abap_pse->save( iv_context  = 'SSFA' iv_application = 'JWT_SI').
       CATCH cx_abap_pse INTO lo_cx_abap_pse.
       CATCH cx_pkcs     INTO lo_cx_pkcs.
+      CATCH  cx_asn1_parser INTO lo_cx_asn1_parser.
     ENDTRY.
   ENDMETHOD.
   METHOD upload_pubsub_cert_ssl.
@@ -1278,12 +1290,12 @@ CLASS lcl_driver IMPLEMENTATION.
           repid                       = sy-repid
           dynnr                       = sy-dynnr
           side                        = cl_gui_docking_container=>dock_at_right
-          extension                   = 600
+          extension                   = 500
 *         style                       = style
 *         lifetime                    = lifetime_default
-*         caption                     = caption
+          caption                     = 'Error'
 *         metric                      = 0
-*         ratio                       = ratio
+          ratio                       = 50
 *         no_autodef_progid_dynnr     = no_autodef_progid_dynnr
 *         name                        = name
         EXCEPTIONS
@@ -1312,8 +1324,18 @@ CLASS lcl_driver IMPLEMENTATION.
 
     lo_text_edit->set_readonly_mode( 1 ).
 
-    CALL METHOD lo_text_edit->get_text_as_r3table
-      IMPORTING
+    APPEND 'Error will be displayed here !' TO lt_text.
+
+    CALL METHOD lo_text_edit->set_text_as_r3table
+      EXPORTING
         table = lt_text.   " text as R/3 tabl
+
+
+  ENDMETHOD.
+  METHOD set_error.
+    APPEND error TO me->lt_text.
+    CALL METHOD me->lo_text_edit->set_text_as_r3table
+      EXPORTING
+        table = me->lt_text.   " text as R/3 tabl
   ENDMETHOD.
 ENDCLASS.
